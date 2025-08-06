@@ -163,7 +163,128 @@ Followings are my results trained using 1 RTX 2080 Ti (qualitative results [here
 
 </details>
 
-# TODO
+#  **PyTorch Lightning system lifecycle**  
 
-- [ ] use super resolution in GUI to improve FPS
-- [ ] multi-sphere images as background
+---
+
+## ✅ Lifecycle Order During Training
+
+### 🔧 1. **Initialization & Setup**
+
+* `__init__()`
+  → Constructor. You load configs, image data, and prepare paths for saving logs and metrics.
+
+* `setup(stage='fit')`
+  → Called *once* before training or validation begins. You instantiate your model, EMA model, and datasets here.
+
+---
+
+### 🚀 2. **Before Training Starts**
+
+* `on_fit_start()`
+  → Called **right before training starts**. You use it to fix random seed:
+
+  ```python
+  seed_everything(self.hparams.seed)
+  ```
+
+* `on_train_start()`
+  → Called **at the beginning of the first epoch**. You write reference images, print model size, etc.
+
+---
+
+### 🔁 3. **Training Loop (per Epoch)**
+
+For each training epoch:
+
+* `train_dataloader()`
+  → Returns the training dataloader.
+
+Then for each batch:
+
+* `training_step(batch, batch_idx)`
+  → Runs the forward pass and computes loss. You log training loss and learning rate here.
+
+* `on_before_zero_grad(optimizer)`
+  → Called before gradients are zeroed. You update your EMA model here:
+
+  ```python
+  self.ema_model.update_parameters(self.model)
+  ```
+
+* `backward(loss, optimizer, optimizer_idx)`
+  → Called to backpropagate. You override it to enable:
+
+  ```python
+  loss.backward(retain_graph=True)
+  ```
+
+At the end of the epoch:
+
+* `training_epoch_end(training_step_outputs)`
+  → You log gradient norms here.
+
+---
+
+### ✅ 4. **Validation Loop (every N epochs)**
+
+* `on_validation_start()`
+  → Called before validation starts. You clear CUDA cache and prepare the output folder.
+
+* `val_dataloader()`
+  → Returns the validation dataloader.
+
+Then for each batch:
+
+* `validation_step(batch, batch_idx)`
+  → Runs inference with the EMA model, computes PSNR/SSIM, and optionally saves the image.
+
+After all batches:
+
+* `validation_epoch_end(outputs)`
+  → Aggregates and logs average PSNR and SSIM, writes to disk.
+
+---
+
+### 🏁 5. **After Training Ends**
+
+* `on_train_end()`
+  → Called once training finishes. You replace `self.model` with the final EMA model for evaluation.
+
+---
+
+### 🔮 6. **Prediction Phase (if you call `predict`)**
+
+* `predict_dataloader()`
+  → Returns the test/predict dataloader.
+
+* `predict_step(batch, batch_idx)`
+  → Runs final image prediction using the EMA model and saves the output image.
+
+---
+
+### 📈 7. **Metric Logging**
+
+* `output_metrics(logger)`
+  → Called after prediction to compute and log final average PSNR/SSIM.
+
+---
+
+## 🔁 Summary Table of Lifecycle Hooks
+
+| Hook                     | Called When                                              |
+| ------------------------ | -------------------------------------------------------- |
+| `__init__()`             | On instantiating the LightningModule                     |
+| `setup(stage)`           | Before training/validation/prediction                    |
+| `on_fit_start()`         | Just before training starts                              |
+| `on_train_start()`       | Before the first training epoch                          |
+| `training_step()`        | For each training batch                                  |
+| `on_before_zero_grad()`  | Before optimizer.zero\_grad() is called                  |
+| `backward()`             | During backpropagation                                   |
+| `training_epoch_end()`   | After each training epoch                                |
+| `on_train_end()`         | After the last training epoch                            |
+| `on_validation_start()`  | Before validation phase begins                           |
+| `validation_step()`      | For each validation batch                                |
+| `validation_epoch_end()` | After all validation batches are processed               |
+| `predict_step()`         | For each predict batch (after calling `trainer.predict`) |
+| `output_metrics()`       | After prediction, for logging final metrics              |

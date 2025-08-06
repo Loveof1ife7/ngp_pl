@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from opt import get_opts
+from scripts.nerf.opt import get_opts
 import os
 import glob
 import imageio
@@ -15,7 +15,7 @@ from datasets.ray_utils import axisangle_to_R, get_rays
 
 # models
 from kornia.utils.grid import create_meshgrid3d
-from models.networks import NGP
+from models.nerf.networks import NGP
 from models.rendering import render, MAX_SAMPLES
 
 # optimizer, losses

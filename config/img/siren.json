@@ -1,0 +1,19 @@
+{
+    "network": {
+        "model": {
+            "use_siren": true,
+            "hidden_dim": 256,
+            "num_layers": 6
+        }
+    },
+    "training": {
+        "LR_scheduler": [
+            {
+                "type": "Step",
+                "initial": 0.0001,
+                "interval": 5,
+                "factor": 0.5
+            }
+        ]
+    }
+}

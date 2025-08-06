@@ -1,4 +1,11 @@
+import os
+import numpy as np
+
+import random
+
 import torch
+import pytorch_lightning
+
 
 
 def extract_model_state_dict(ckpt_path, model_name='model', prefixes_to_ignore=[]):
@@ -37,3 +44,27 @@ def slim_ckpt(ckpt_path, save_poses=False):
     for k in keys_to_pop:
         ckpt['state_dict'].pop(k, None)
     return ckpt['state_dict']
+
+def seed_everything(seed):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    pytorch_lightning.seed_everything(seed, workers=True)
+    #torch.backends.cudnn.deterministic = True
+    #torch.backends.cudnn.benchmark = True
+
+
+
+def process_batch_in_chunks(in_ccords, model, max_chunk_size=1024):
+    chunk_outs = []
+
+    coord_chunks = torch.split(in_ccords, max_chunk_size)
+    for chunk_batched_in in coord_chunks:
+        tmp_img = model(chunk_batched_in)
+        chunk_outs.append(tmp_img.detach())
+
+    batched_out = torch.cat(chunk_outs, dim=0)
+
+    return batched_out

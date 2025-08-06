@@ -10,7 +10,7 @@ from datasets import dataset_dict
 from datasets.ray_utils import get_ray_directions, get_rays
 from models.networks import NGP
 from models.rendering import render
-from train import depth2img
+from train_nerf import depth2img
 from utils import load_ckpt
 
 import warnings; warnings.filterwarnings("ignore")

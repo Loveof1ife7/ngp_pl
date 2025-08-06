@@ -1,5 +1,6 @@
 /.vscode
 /.VSCodeCounter
+experiments/
 ckpts/
 logs/
 results/

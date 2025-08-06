@@ -2,9 +2,10 @@ import torch
 import numpy as np
 from kornia import create_meshgrid
 from einops import rearrange
+from torch import amp
 
 
-@torch.cuda.amp.autocast(dtype=torch.float32)
+@amp.autocast(device_type='cuda', dtype=torch.float32)
 def get_ray_directions(H, W, K, device='cpu', random=False, return_uv=False, flatten=True):
     """
     Get ray directions for all pixels in camera coordinate [right down front].
@@ -42,7 +43,7 @@ def get_ray_directions(H, W, K, device='cpu', random=False, return_uv=False, fla
     return directions
 
 
-@torch.cuda.amp.autocast(dtype=torch.float32)
+@amp.autocast(device_type='cuda', dtype=torch.float32)
 def get_rays(directions, c2w):
     """
     Get ray origin and directions in world coordinate for all pixels in one image.
@@ -70,7 +71,8 @@ def get_rays(directions, c2w):
     return rays_o, rays_d
 
 
-@torch.cuda.amp.autocast(dtype=torch.float32)
+
+@amp.autocast(device_type='cuda', dtype=torch.float32)
 def axisangle_to_R(v):
     """
     Convert an axis-angle vector to rotation matrix

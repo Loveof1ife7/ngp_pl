@@ -3,10 +3,10 @@ from torch import nn
 import tinycudann as tcnn
 import vren
 from einops import rearrange
-from .custom_functions import TruncExp
+from ..custom_functions import TruncExp
 import numpy as np
 
-from .rendering import NEAR_DISTANCE
+from ..rendering import NEAR_DISTANCE
 
 
 class NGP(nn.Module):
