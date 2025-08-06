@@ -1,10 +1,7 @@
 {
     "network": {
-        "model": {
-            "use_siren": true,
-            "hidden_dim": 256,
-            "num_layers": 6
-        }
+        "hidden_dim": 256,
+        "num_layers": 6
     },
     "training": {
         "LR_scheduler": [

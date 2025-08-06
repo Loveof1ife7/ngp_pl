@@ -4,7 +4,7 @@ import argparse
 def get_opts():
     parser = argparse.ArgumentParser(description="Parsing parameters for 3D occupancy.")
 
-    parser.add_argument("--config", type=str, default="config/img/config.json",
+    parser.add_argument("--config", type=str, required=True,
                         help="network configuration")
 
 

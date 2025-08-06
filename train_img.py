@@ -57,9 +57,9 @@ class ImageSystem(LightningModule):
         with open(path, 'w') as f:
             json.dump(self.config, f, indent=4, separators=(", ", ": "), sort_keys=True)
             
-        ### Sava validation results
+        ### Save validation results
         self.val_metric_log_path = os.path.join(exp_dir, "val_metrics.txt")
-        with open(self.metric_log_path, 'w') as f:
+        with open(self.val_metric_log_path, 'w') as f:
             f.write("epoch\tpsnr\tssim\n")
             
         self.img_data = torch.from_numpy(read_image(self.hparams.input_path)).float()
@@ -250,7 +250,7 @@ class ImageSystem(LightningModule):
         self.log("val/avg_psnr", avg_psnr)
         self.log("val/avg_ssim", avg_ssim)
 
-        with open(self.metric_log_path, 'a') as f:
+        with open(self.val_metric_log_path, 'a') as f:
             f.write(f"{self.current_epoch}\t{avg_psnr:.4f}\t{avg_ssim:.4f}\n")
 
     def predict_step(self, batch, batch_idx):
@@ -285,7 +285,7 @@ class ImageSystem(LightningModule):
         logger.experiment.add_scalar("test/avg_psnr", avg_psnr, 0)
         logger.experiment.add_scalar("test/avg_ssim", avg_ssim, 0)
 
-        with open(self.metric_log_path, 'a') as f:
+        with open(self.val_metric_log_path, 'a') as f:
             f.write(f"final\t{avg_psnr:.4f}\t{avg_ssim:.4f}\n")
 
         print(f"Average PSNR: {avg_psnr:.4f}, Average SSIM: {avg_ssim:.4f}")

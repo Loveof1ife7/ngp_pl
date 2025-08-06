@@ -62,7 +62,7 @@ class SirenImageSystem(LightningModule):
             f.write("epoch\tpsnr\tssim\n")
         
         ### load image data
-        self.img_data = torch.from_numpy(read_image(self.config['data']['image_path'])).float()
+        self.img_data = torch.from_numpy(read_image(self.hparams.input_path)).float()
         print(f"[DEBUG] loaded image shape: {self.img_data.shape}")
 
         ### psnr and ssim
@@ -76,13 +76,11 @@ class SirenImageSystem(LightningModule):
     def setup(self, stage):
         ### model
         self.model = ImageSiren(
-            image_channels=3,
-            num_layers=self.config['model']['num_layers'],
-            hidden_dim=self.config['model']['hidden_dim'],
-            use_siren=self.config['model']['use_siren']
+            img_channels=3,
+            num_layers=self.config["network"]["num_layers"],
+            hidden_dim=self.config["network"]["hidden_dim"],
         )
-
-                
+        
         ema_decay = 0.95
         ema_avg = lambda averaged_model_parameter, model_parameter, num_averaged: \
             ema_decay * averaged_model_parameter + (1-ema_decay) * model_parameter
@@ -253,7 +251,7 @@ class SirenImageSystem(LightningModule):
         self.log("val/avg_psnr", avg_psnr)
         self.log("val/avg_ssim", avg_ssim)
 
-        with open(self.metric_log_path, 'a') as f:
+        with open(self.val_metric_log_path, 'a') as f:
             f.write(f"{self.current_epoch}\t{avg_psnr:.4f}\t{avg_ssim:.4f}\n")
 
     def predict_step(self, batch, batch_idx):
@@ -288,7 +286,7 @@ class SirenImageSystem(LightningModule):
         logger.experiment.add_scalar("test/avg_psnr", avg_psnr, 0)
         logger.experiment.add_scalar("test/avg_ssim", avg_ssim, 0)
 
-        with open(self.metric_log_path, 'a') as f:
+        with open(self.val_metric_log_path, 'a') as f:
             f.write(f"final\t{avg_psnr:.4f}\t{avg_ssim:.4f}\n")
 
         print(f"Average PSNR: {avg_psnr:.4f}, Average SSIM: {avg_ssim:.4f}")

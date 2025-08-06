@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import tinycudann as tcnn
 
-from ..siren import ImageDownsampling, SingleBVPNet
+from models.siren import SingleBVPNet
 
 
 class ImageNGP(nn.Module):

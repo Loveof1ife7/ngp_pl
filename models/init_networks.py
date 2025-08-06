@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn.init import _no_grad_trunc_normal_
-from siren import BatchLinear
+from models.siren import BatchLinear
 
 def init_weights_trunc_normal(m):
     # For PINNet, Raissi et al. 2019
