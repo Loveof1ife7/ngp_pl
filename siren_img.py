@@ -255,42 +255,45 @@ class SirenImageSystem(LightningModule):
             f.write(f"{self.current_epoch}\t{avg_psnr:.4f}\t{avg_ssim:.4f}\n")
 
     def predict_step(self, batch, batch_idx):
-        img_size = self.img_data.shape[0] * self.img_data.shape[1]
+  
+        H, W, C = self.img_data.shape
+        device = self.device
+        
+        gt_img = self.img_data.float().clamp(0.0, 1.0).to(device)  # [H, W, C]
+        if C == 1:
+            gt_img = gt_img.repeat(1, 1, 3)
+            C = 3 
+            
+        print(f"[DEBUG] Device: {device}, Image shape: {H}x{W}x{C}")
 
-        pred_img = process_batch_in_chunks(batch["points"], self.ema_model, max_chunk_size=2**18)
-        pred_img = pred_img[:img_size, :].reshape(self.img_data.shape).float().clamp(0.0, 1.0)
-        pred_img = pred_img.cpu().numpy()
+        # 构造 [-1,1] 范围的坐标网格
+        y_coords, x_coords = torch.meshgrid(
+            torch.linspace(-1, 1, H, device=device),
+            torch.linspace(-1, 1, W, device=device),
+            indexing='ij'
+        )
+        coords = torch.stack((x_coords, y_coords), dim=-1).reshape(-1, 2)  # [H*W, 2]
+        
+        print(f"[DEBUG] x_coords shape: {x_coords.shape}, y_coords shape: {y_coords.shape}")
+        print(f"[DEBUG] coords shape: {coords.shape}")
 
-        gt_img = self.img_data.float().clamp(0.0, 1.0).numpy()
+        pred_img = process_batch_in_chunks(coords, self.ema_model, max_chunk_size=2**18)  # [H*W, C]
+        pred_img = pred_img[:H*W, :].reshape(H, W, 3).float().clamp(0.0, 1.0).to(device)  # [H, W, C]
+        
+        # 转为 [1, C, H, W] 计算 PSNR / SSIM
+        pred = pred_img.permute(2, 0, 1).unsqueeze(0)
+        gt = gt_img.permute(2, 0, 1).unsqueeze(0)
+        
+        psnr = self.val_psnr(gt, pred)
+        ssim = self.val_ssim(gt, pred)
 
-        img_path = f"{self.val_dir}/result.jpg"
-        write_image(img_path, pred_img)
+        # 保存图像
+        save_dir = f"{self.hparams.output_dir}/{self.time}/predict"
+        os.makedirs(save_dir, exist_ok=True)
+        write_image(f"{save_dir}/result.jpg", pred.squeeze(0))  # shape [C, H, W]
 
-    
-    def output_metrics(self, logger):
-        preds_nested = self.trainer.predict(self)
-
-        # 展开嵌套列表
-        preds = [p for sublist in preds_nested for p in sublist if isinstance(p, dict)]
-
-        if not preds:
-            print("[Warning] No predictions returned from predict(). Skipping metrics.")
-            return
-
-        psnrs = [p["psnr"] for p in preds]
-        ssims = [p["ssim"] for p in preds]
-
-        avg_psnr = sum(psnrs) / len(psnrs)
-        avg_ssim = sum(ssims) / len(ssims)
-
-        logger.experiment.add_scalar("test/avg_psnr", avg_psnr, 0)
-        logger.experiment.add_scalar("test/avg_ssim", avg_ssim, 0)
-
-        with open(self.val_metric_log_path, 'a') as f:
-            f.write(f"final\t{avg_psnr:.4f}\t{avg_ssim:.4f}\n")
-
-        print(f"Average PSNR: {avg_psnr:.4f}, Average SSIM: {avg_ssim:.4f}")
-
+        print(f"[PREDICT] PSNR: {psnr.item():.4f}, SSIM: {ssim.item():.4f}")
+        return {"psnr": psnr.item(), "ssim": ssim.item()}
 
 
     def get_progress_bar_dict(self):

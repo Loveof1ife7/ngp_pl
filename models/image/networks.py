@@ -66,7 +66,7 @@ class ImageNGP(nn.Module):
 class ImageSiren(nn.Module):
     def __init__(self,
                  hidden_dim=256,
-                 num_layers=3,
+                 num_layers=8,
                  img_channels=3,
                  sidelength=256,
                  downsample=False,
